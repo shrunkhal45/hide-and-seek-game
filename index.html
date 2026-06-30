@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hide & Seek - Rainbow Garden</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #gameContainer {
+      width: 100%;
+      height: 100vh;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .ui-panel {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      border-radius: 10px;
+      padding: 20px;
+      font-size: 16px;
+      z-index: 100;
+      font-family: Arial, sans-serif;
+    }
+
+    #mainMenu {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 420px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px;
+      border-radius: 15px;
+      text-align: center;
+      z-index: 200;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    #mainMenu h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    #mainMenu p {
+      margin-bottom: 30px;
+      font-size: 18px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      color: #333;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    button.secondary {
+      background: #2196F3;
+    }
+
+    button.secondary:hover {
+      background: #0b7dda;
+    }
+
+    #hud {
+      display: none;
+    }
+
+    .hud-top-left {
+      top: 20px;
+      left: 20px;
+    }
+
+    .hud-top-right {
+      top: 20px;
+      right: 20px;
+      text-align: right;
+    }
+
+    .hud-bottom-left {
+      bottom: 20px;
+      left: 20px;
+    }
+
+    .hud-bottom-right {
+      bottom: 20px;
+      right: 20px;
+      text-align: right;
+    }
+
+    .timer {
+      font-size: 48px;
+      font-weight: bold;
+      color: #FFD700;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .phase-info {
+      font-size: 24px;
+      color: #00FF00;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      margin-bottom: 10px;
+    }
+
+    .seeker-info {
+      font-size: 20px;
+      color: #FF6B6B;
+      margin-bottom: 10px;
+    }
+
+    .player-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .player-item {
+      padding: 5px;
+      margin: 3px 0;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      font-size: 14px;
+    }
+
+    .player-item.seeker {
+      color: #FF6B6B;
+      font-weight: bold;
+    }
+
+    .player-item.eliminated {
+      color: #888;
+      text-decoration: line-through;
+    }
+
+    .room-code {
+      font-size: 32px;
+      font-weight: bold;
+      color: #FFD700;
+      letter-spacing: 2px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+
+    #gameOverScreen {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 300;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      text-align: center;
+    }
+
+    #gameOverScreen h1 {
+      font-size: 64px;
+      margin-bottom: 30px;
+    }
+
+    .survivor-list {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px;
+      max-width: 500px;
+    }
+
+    .survivor-list h3 {
+      margin-bottom: 15px;
+      color: #00FF00;
+    }
+
+    .controls-info {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      font-size: 12px;
+      color: #888;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer"></div>
+
+  <!-- Main Menu -->
+  <div id="mainMenu">
+    <h1>🌈 Hide & Seek</h1>
+    <p>Rainbow Garden</p>
+    
+    <div style="margin-bottom: 20px;">
+      <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20">
+    </div>
+
+    <div class="button-group">
+      <button onclick="game.createLocalGame()">Single Player</button>
+      <button class="secondary" onclick="game.showJoinPanel()">Multiplayer</button>
+    </div>
+
+    <div id="joinPanel" style="display: none; margin-top: 20px;">
+      <p style="margin-bottom: 10px; font-size: 14px;">Multiplayer requires a server</p>
+      <button onclick="game.hideJoinPanel()" style="width: 100%;">Back</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="ui-panel hud-top-left">
+      <div style="font-size: 18px; margin-bottom: 15px; font-weight: bold;">Players</div>
+      <div class="player-list" id="playerList"></div>
+    </div>
+
+    <div class="ui-panel hud-top-right">
+      <div class="phase-info" id="phaseInfo">Lobby</div>
+      <div class="timer" id="timer">--:--</div>
+      <div class="seeker-info" id="seekerInfo"></div>
+    </div>
+
+    <div class="ui-panel hud-bottom-right">
+      <div id="statusInfo" style="font-size: 16px;"></div>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameOverScreen">
+    <h1 id="gameOverTitle">Game Over!</h1>
+    <p id="gameOverMessage"></p>
+    <div class="survivor-list">
+      <h3>Survivors:</h3>
+      <div id="survivorsList"></div>
+    </div>
+    <button onclick="location.reload()" style="margin-top: 30px; padding: 15px 40px; font-size: 18px;">Play Again</button>
+  </div>
+
+  <div class="controls-info">
+    <strong>Controls:</strong><br>
+    WASD - Move | Mouse - Look<br>
+    Space - Jump | ESC - Unlock Cursor
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    class Game {
+      constructor() {
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.gameState = 'lobby'; // lobby, hiding, seeking, ended
+        this.isSeeker = false;
+        this.players = new Map();
+        this.playerObjects = new Map();
+        this.keys = {};
+        this.pointerLocked = false;
+        this.playerVelocity = new THREE.Vector3();
+        this.playerOnGround = true;
+      }
+
+      init() {
+        const container = document.getElementById('gameContainer');
+        
+        // Scene setup
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x87CEEB);
+        this.scene.fog = new THREE.Fog(0x87CEEB, 200, 1000);
+
+        // Camera
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera.position.set(0, 2, 0);
+
+        // Renderer
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
+        container.appendChild(this.renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(50, 100, 50);
+        directionalLight.castShadow = true;
+        this.scene.add(directionalLight);
+
+        // Build world
+        this.buildWorld();
+
+        // Input
+        this.setupInput();
+
+        // Render loop
+        this.animate();
+      }
+
+      buildWorld() {
+        // Ground
+        const groundGeo = new THREE.PlaneGeometry(200, 200);
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x2ecc71 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        this.scene.add(ground);
+
+        // Colorful boxes
+        const colors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0xa8e6cf, 0xff8b94];
+        for (let i = 0; i < 8; i++) {
+          const size = Math.random() * 5 + 3;
+          const geo = new THREE.BoxGeometry(size, size, size);
+          const mat = new THREE.MeshStandardMaterial({ color: colors[i % colors.length] });
+          const box = new THREE.Mesh(geo, mat);
+          box.position.set(Math.random() * 80 - 40, size / 2, Math.random() * 80 - 40);
+          box.castShadow = true;
+          this.scene.add(box);
+        }
+
+        // Trees
+        for (let i = 0; i < 15; i++) {
+          const trunkGeo = new THREE.CylinderGeometry(1, 1, 5, 8);
+          const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+          const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+          
+          const foliageGeo = new THREE.ConeGeometry(6, 12, 8);
+          const foliageMat = new THREE.MeshStandardMaterial({ color: 0x27ae60 });
+          const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+          foliage.position.y = 8;
+
+          const tree = new THREE.Group();
+          tree.add(trunk);
+          tree.add(foliage);
+          tree.position.set(Math.random() * 150 - 75, 0, Math.random() * 150 - 75);
+          trunk.castShadow = true;
+          foliage.castShadow = true;
+          this.scene.add(tree);
+        }
+      }
+
+      setupInput() {
+        document.addEventListener('keydown', (e) => {
+          this.keys[e.key.toLowerCase()] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+          this.keys[e.key.toLowerCase()] = false;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (this.pointerLocked) {
+            const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+            euler.setFromQuaternion(this.camera.quaternion);
+            euler.x -= e.movementY * 0.005;
+            euler.y -= e.movementX * 0.005;
+            this.camera.quaternion.setFromEuler(euler);
+          }
+        });
+
+        document.addEventListener('click', () => {
+          if (!this.pointerLocked) {
+            document.documentElement.requestPointerLock();
+            this.pointerLocked = true;
+          }
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+          this.pointerLocked = document.pointerLockElement !== null;
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            document.exitPointerLock();
+          }
+          if (e.key === ' ' && (this.gameState === 'hiding' || this.gameState === 'seeking')) {
+            this.jump();
+          }
+        });
+
+        window.addEventListener('resize', () => {
+          this.camera.aspect = window.innerWidth / window.innerHeight;
+          this.camera.updateProjectionMatrix();
+          this.renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      }
+
+      movePlayer() {
+        if (this.gameState !== 'hiding' && this.gameState !== 'seeking') return;
+
+        const forward = new THREE.Vector3();
+        this.camera.getWorldDirection(forward);
+        forward.y = 0;
+        forward.normalize();
+
+        const right = new THREE.Vector3();
+        right.crossVectors(this.camera.up, forward).normalize();
+
+        if (this.keys['w']) this.camera.position.addScaledVector(forward, 0.3);
+        if (this.keys['s']) this.camera.position.addScaledVector(forward, -0.3);
+        if (this.keys['a']) this.camera.position.addScaledVector(right, -0.3);
+        if (this.keys['d']) this.camera.position.addScaledVector(right, 0.3);
+      }
+
+      jump() {
+        if (this.playerOnGround) {
+          this.playerVelocity.y = 0.15;
+          this.playerOnGround = false;
+        }
+      }
+
+      animate = () => {
+        requestAnimationFrame(this.animate);
+        this.movePlayer();
+
+        // Gravity
+        this.playerVelocity.y -= 0.01;
+        this.camera.position.y += this.playerVelocity.y;
+
+        if (this.camera.position.y <= 1) {
+          this.camera.position.y = 1;
+          this.playerVelocity.y = 0;
+          this.playerOnGround = true;
+        } else {
+          this.playerOnGround = false;
+        }
+
+        this.renderer.render(this.scene, this.camera);
+      }
+
+      createLocalGame() {
+        const playerName = document.getElementById('playerNameInput').value.trim();
+        if (!playerName) {
+          alert('Please enter your name');
+          return;
+        }
+
+        document.getElementById('mainMenu').style.display = 'none';
+        document.getElementById('hud').style.display = 'block';
+
+        this.gameState = 'hiding';
+        this.players.clear();
+        this.playerObjects.clear();
+
+        // Create local players
+        this.players.set('player1', { id: 'player1', name: playerName, position: { x: 0, y: 0, z: 0 }, isSeeker: false, isEliminated: false });
+        
+        // Add AI players
+        for (let i = 0; i < 3; i++) {
+          const names = ['AI-Bot', 'Computer', 'Player' + (i+2)];
+          this.players.set('ai' + i, { 
+            id: 'ai' + i, 
+            name: names[i], 
+            position: { x: Math.random() * 30 - 15, y: 0, z: Math.random() * 30 - 15 }, 
+            isSeeker: false, 
+            isEliminated: false 
+          });
+        }
+
+        // Random seeker
+        const allPlayers = Array.from(this.players.values());
+        const seekerId = allPlayers[Math.floor(Math.random() * allPlayers.length)].id;
+        this.isSeeker = seekerId === 'player1';
+        this.players.get(seekerId).isSeeker = true;
+
+        document.getElementById('seekerInfo').textContent = `Seeker: ${this.players.get(seekerId).name}`;
+        document.getElementById('phaseInfo').textContent = 'Hiding Phase';
+
+        this.updatePlayerList();
+        this.startHidingPhase();
+      }
+
+      showJoinPanel() {
+        document.getElementById('joinPanel').style.display = 'block';
+      }
+
+      hideJoinPanel() {
+        document.getElementById('joinPanel').style.display = 'none';
+      }
+
+      updatePlayerList() {
+        const listContainer = document.getElementById('playerList');
+        listContainer.innerHTML = '';
+        
+        this.players.forEach((player) => {
+          const item = document.createElement('div');
+          item.className = 'player-item';
+          if (player.isSeeker) item.classList.add('seeker');
+          if (player.isEliminated) item.classList.add('eliminated');
+          
+          let label = player.name;
+          if (player.isSeeker) label += ' (Seeker)';
+          if (player.isEliminated) label += ' (❌)';
+          
+          item.textContent = label;
+          listContainer.appendChild(item);
+        });
+      }
+
+      startHidingPhase() {
+        let timeLeft = 60;
+        const interval = setInterval(() => {
+          timeLeft--;
+          const min = Math.floor(timeLeft / 60);
+          const sec = timeLeft % 60;
+          document.getElementById('timer').textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+
+          if (timeLeft <= 0) {
+            clearInterval(interval);
+            this.startSeekingPhase();
+          }
+        }, 1000);
+      }
+
+      startSeekingPhase() {
+        this.gameState = 'seeking';
+        document.getElementById('phaseInfo').textContent = 'Seeking Phase';
+
+        let timeLeft = 120;
+        const interval = setInterval(() => {
+          timeLeft--;
+          const min = Math.floor(timeLeft / 60);
+          const sec = timeLeft % 60;
+          document.getElementById('timer').textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+
+          if (timeLeft <= 0) {
+            clearInterval(interval);
+            this.endGame();
+          }
+        }, 1000);
+      }
+
+      endGame() {
+        this.gameState = 'ended';
+        const survivors = Array.from(this.players.values()).filter(p => !p.isEliminated);
+        const seeker = Array.from(this.players.values()).find(p => p.isSeeker);
+
+        const screen = document.getElementById('gameOverScreen');
+        const title = document.getElementById('gameOverTitle');
+        const message = document.getElementById('gameOverMessage');
+        const list = document.getElementById('survivorsList');
+
+        const isWinner = survivors.some(p => p.id === 'player1');
+        title.textContent = isWinner ? '🎉 You Won!' : '❌ Game Over';
+        message.textContent = `Seeker was: ${seeker.name}`;
+
+        list.innerHTML = '';
+        survivors.forEach(survivor => {
+          const item = document.createElement('div');
+          item.className = 'survivor-item';
+          item.textContent = survivor.name;
+          list.appendChild(item);
+        });
+
+        screen.style.display = 'flex';
+      }
+    }
+
+    const game = new Game();
+    game.init();
+  </script>
+</body>
+</html>
