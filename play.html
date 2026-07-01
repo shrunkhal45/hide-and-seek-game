@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hide & Seek - Play Now</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #gameContainer {
+      width: 100%;
+      height: 100vh;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .ui-panel {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      border-radius: 10px;
+      padding: 20px;
+      font-size: 16px;
+      z-index: 100;
+      font-family: Arial, sans-serif;
+    }
+
+    #mainMenu {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 450px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px;
+      border-radius: 15px;
+      text-align: center;
+      z-index: 200;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    #mainMenu h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    #mainMenu .subtitle {
+      font-size: 14px;
+      margin-bottom: 30px;
+      color: #ddd;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-direction: column;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      color: #333;
+    }
+
+    button {
+      padding: 15px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    button.secondary {
+      background: #2196F3;
+    }
+
+    button.secondary:hover {
+      background: #0b7dda;
+    }
+
+    button.danger {
+      background: #FF6B6B;
+    }
+
+    button.danger:hover {
+      background: #FF5555;
+    }
+
+    #hud {
+      display: none;
+    }
+
+    .hud-top-left {
+      top: 20px;
+      left: 20px;
+    }
+
+    .hud-top-right {
+      top: 20px;
+      right: 20px;
+      text-align: right;
+    }
+
+    .hud-bottom-left {
+      bottom: 20px;
+      left: 20px;
+    }
+
+    .timer {
+      font-size: 48px;
+      font-weight: bold;
+      color: #FFD700;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .phase-info {
+      font-size: 24px;
+      color: #00FF00;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      margin-bottom: 10px;
+    }
+
+    .player-list {
+      max-height: 250px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .player-item {
+      padding: 8px;
+      margin: 5px 0;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      font-size: 14px;
+    }
+
+    .player-item.seeker {
+      color: #FF6B6B;
+      font-weight: bold;
+    }
+
+    .player-item.eliminated {
+      color: #888;
+      text-decoration: line-through;
+    }
+
+    .player-item.you {
+      color: #FFD700;
+      font-weight: bold;
+    }
+
+    #gameOverScreen {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 300;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      text-align: center;
+    }
+
+    #gameOverScreen h1 {
+      font-size: 64px;
+      margin-bottom: 30px;
+    }
+
+    .survivor-list {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px;
+      max-width: 500px;
+    }
+
+    .survivor-list h3 {
+      margin-bottom: 15px;
+      color: #00FF00;
+    }
+
+    .controls-info {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      font-size: 12px;
+      color: #888;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .mode-selector {
+      margin-bottom: 20px;
+    }
+
+    .mode-selector button {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer"></div>
+
+  <!-- Main Menu -->
+  <div id="mainMenu">
+    <h1>🌈 Hide & Seek</h1>
+    <div class="subtitle">Rainbow Garden - Single Player</div>
+    
+    <div style="margin-bottom: 20px;">
+      <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" value="Player">
+    </div>
+
+    <div class="mode-selector">
+      <button onclick="game.startSinglePlayer()" class="secondary">
+        🎮 PLAY NOW (Single Player)
+      </button>
+      <button onclick="game.startWithAI()" class="danger">
+        👥 PLAY WITH AI BOTS
+      </button>
+    </div>
+
+    <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.3); margin: 20px 0;">
+
+    <small style="color: #ddd;">
+      ⌨️ WASD to move | Mouse to look | Space to jump | ESC to unlock
+    </small>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="ui-panel hud-top-left">
+      <div style="font-size: 18px; margin-bottom: 15px; font-weight: bold;">👥 Players</div>
+      <div class="player-list" id="playerList"></div>
+    </div>
+
+    <div class="ui-panel hud-top-right">
+      <div class="phase-info" id="phaseInfo">Loading...</div>
+      <div class="timer" id="timer">--:--</div>
+      <div style="margin-top: 10px; font-size: 14px; color: #FFD700;" id="playerRole"></div>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameOverScreen">
+    <h1 id="gameOverTitle">Game Over!</h1>
+    <p id="gameOverMessage" style="margin-bottom: 20px;"></p>
+    <div class="survivor-list">
+      <h3>Survivors:</h3>
+      <div id="survivorsList"></div>
+    </div>
+    <button onclick="location.reload()" style="margin-top: 30px; padding: 15px 40px; font-size: 18px;">Play Again</button>
+  </div>
+
+  <div class="controls-info">
+    <strong>⌨️ Controls:</strong><br>
+    WASD - Move | Space - Jump<br>
+    Mouse - Look | ESC - Unlock Cursor
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    class HideAndSeekGame {
+      constructor() {
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.gameState = 'lobby';
+        this.isSeeker = false;
+        this.players = new Map();
+        this.keys = {};
+        this.pointerLocked = false;
+        this.playerVelocity = new THREE.Vector3();
+        this.playerOnGround = true;
+        this.gameMode = null; // 'solo' or 'ai'
+        this.playerName = 'Player';
+      }
+
+      init() {
+        const container = document.getElementById('gameContainer');
+        
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x87CEEB);
+        this.scene.fog = new THREE.Fog(0x87CEEB, 200, 1000);
+
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera.position.set(0, 2, 0);
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
+        container.appendChild(this.renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(50, 100, 50);
+        directionalLight.castShadow = true;
+        this.scene.add(directionalLight);
+
+        this.buildWorld();
+        this.setupInput();
+        this.animate();
+      }
+
+      buildWorld() {
+        // Ground
+        const groundGeo = new THREE.PlaneGeometry(200, 200);
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x2ecc71 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        this.scene.add(ground);
+
+        // Boxes
+        const colors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0xa8e6cf, 0xff8b94];
+        for (let i = 0; i < 10; i++) {
+          const size = Math.random() * 5 + 3;
+          const geo = new THREE.BoxGeometry(size, size, size);
+          const mat = new THREE.MeshStandardMaterial({ color: colors[i % colors.length] });
+          const box = new THREE.Mesh(geo, mat);
+          box.position.set(Math.random() * 100 - 50, size / 2, Math.random() * 100 - 50);
+          box.castShadow = true;
+          this.scene.add(box);
+        }
+
+        // Trees
+        for (let i = 0; i < 20; i++) {
+          const trunkGeo = new THREE.CylinderGeometry(1, 1, 5, 8);
+          const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+          const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+          
+          const foliageGeo = new THREE.ConeGeometry(6, 12, 8);
+          const foliageMat = new THREE.MeshStandardMaterial({ color: 0x27ae60 });
+          const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+          foliage.position.y = 8;
+
+          const tree = new THREE.Group();
+          tree.add(trunk);
+          tree.add(foliage);
+          tree.position.set(Math.random() * 180 - 90, 0, Math.random() * 180 - 90);
+          this.scene.add(tree);
+        }
+      }
+
+      startSinglePlayer() {
+        const name = document.getElementById('playerNameInput').value.trim() || 'Player';
+        this.playerName = name;
+        this.gameMode = 'solo';
+        document.getElementById('mainMenu').style.display = 'none';
+        document.getElementById('hud').style.display = 'block';
+
+        this.players.clear();
+        this.players.set('you', {
+          id: 'you',
+          name: name,
+          position: { x: 0, y: 0, z: 0 },
+          isSeeker: true,
+          isEliminated: false
+        });
+
+        this.isSeeker = true;
+        document.getElementById('playerRole').textContent = '👁️ You are the SEEKER';
+        document.getElementById('phaseInfo').textContent = '🙈 Hiding Phase';
+        this.updatePlayerList();
+        this.startHidingPhase();
+      }
+
+      startWithAI() {
+        const name = document.getElementById('playerNameInput').value.trim() || 'Player';
+        this.playerName = name;
+        this.gameMode = 'ai';
+        document.getElementById('mainMenu').style.display = 'none';
+        document.getElementById('hud').style.display = 'block';
+
+        this.players.clear();
+        
+        // Add player
+        this.players.set('player1', {
+          id: 'player1',
+          name: name,
+          position: { x: 0, y: 0, z: 0 },
+          isSeeker: false,
+          isEliminated: false
+        });
+
+        // Add AI bots
+        const botNames = ['Bot-Alpha', 'Bot-Beta', 'Bot-Gamma'];
+        for (let i = 0; i < 3; i++) {
+          this.players.set('ai' + i, {
+            id: 'ai' + i,
+            name: botNames[i],
+            position: { x: Math.random() * 50 - 25, y: 0, z: Math.random() * 50 - 25 },
+            isSeeker: false,
+            isEliminated: false
+          });
+        }
+
+        // Random seeker
+        const allPlayers = Array.from(this.players.values());
+        const seeker = allPlayers[Math.floor(Math.random() * allPlayers.length)];
+        this.isSeeker = seeker.id === 'player1';
+        seeker.isSeeker = true;
+
+        document.getElementById('playerRole').textContent = this.isSeeker ? '👁️ You are the SEEKER' : '🏃 Find a hiding spot!';
+        document.getElementById('phaseInfo').textContent = '🙈 Hiding Phase';
+        this.updatePlayerList();
+        this.startHidingPhase();
+      }
+
+      updatePlayerList() {
+        const list = document.getElementById('playerList');
+        list.innerHTML = '';
+        
+        this.players.forEach(player => {
+          const item = document.createElement('div');
+          item.className = 'player-item';
+          
+          if (player.id === 'player1' || player.id === 'you') item.classList.add('you');
+          if (player.isSeeker) item.classList.add('seeker');
+          if (player.isEliminated) item.classList.add('eliminated');
+          
+          let text = player.name;
+          if (player.id === 'player1' || player.id === 'you') text += ' (You)';
+          if (player.isSeeker) text += ' 👁️';
+          if (player.isEliminated) text += ' ❌';
+          
+          item.textContent = text;
+          list.appendChild(item);
+        });
+      }
+
+      startHidingPhase() {
+        let timeLeft = 60;
+        const interval = setInterval(() => {
+          timeLeft--;
+          const min = Math.floor(timeLeft / 60);
+          const sec = timeLeft % 60;
+          document.getElementById('timer').textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+
+          if (timeLeft <= 0) {
+            clearInterval(interval);
+            this.startSeekingPhase();
+          }
+        }, 1000);
+      }
+
+      startSeekingPhase() {
+        this.gameState = 'seeking';
+        document.getElementById('phaseInfo').textContent = '👁️ Seeking Phase';
+
+        if (this.gameMode === 'ai') {
+          this.startAIMovement();
+        }
+
+        let timeLeft = 120;
+        const interval = setInterval(() => {
+          timeLeft--;
+          const min = Math.floor(timeLeft / 60);
+          const sec = timeLeft % 60;
+          document.getElementById('timer').textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+
+          if (timeLeft <= 0) {
+            clearInterval(interval);
+            this.endGame();
+          }
+        }, 1000);
+      }
+
+      startAIMovement() {
+        setInterval(() => {
+          if (this.gameState !== 'seeking') return;
+
+          this.players.forEach((player, id) => {
+            if (!id.startsWith('ai')) return;
+
+            if (this.isSeeker) {
+              // AI moves randomly
+              const angle = Math.random() * Math.PI * 2;
+              player.position.x += Math.cos(angle) * 0.5;
+              player.position.z += Math.sin(angle) * 0.5;
+            } else if (player.isSeeker) {
+              // Seeker AI chases player
+              const playerPos = this.players.get('player1')?.position;
+              if (playerPos) {
+                const dx = playerPos.x - player.position.x;
+                const dz = playerPos.z - player.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+
+                if (dist > 2) {
+                  player.position.x += (dx / dist) * 0.3;
+                  player.position.z += (dz / dist) * 0.3;
+                } else {
+                  // Tagged!
+                  const targetPlayer = this.players.get('player1');
+                  if (targetPlayer && !targetPlayer.isEliminated) {
+                    targetPlayer.isEliminated = true;
+                    this.updatePlayerList();
+                  }
+                }
+              }
+            }
+          });
+        }, 500);
+      }
+
+      endGame() {
+        this.gameState = 'ended';
+        const survivors = Array.from(this.players.values()).filter(p => !p.isEliminated);
+        const seeker = Array.from(this.players.values()).find(p => p.isSeeker);
+
+        const isWinner = survivors.some(p => p.id === 'player1' || p.id === 'you');
+        
+        document.getElementById('gameOverTitle').textContent = isWinner ? '🎉 You Won!' : '❌ Game Over';
+        document.getElementById('gameOverMessage').textContent = `Seeker: ${seeker.name}`;
+
+        const list = document.getElementById('survivorsList');
+        list.innerHTML = '';
+        survivors.forEach(s => {
+          const item = document.createElement('div');
+          item.textContent = s.name;
+          list.appendChild(item);
+        });
+
+        document.getElementById('gameOverScreen').style.display = 'flex';
+      }
+
+      setupInput() {
+        document.addEventListener('keydown', (e) => {
+          this.keys[e.key.toLowerCase()] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+          this.keys[e.key.toLowerCase()] = false;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (this.pointerLocked) {
+            const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+            euler.setFromQuaternion(this.camera.quaternion);
+            euler.x -= e.movementY * 0.005;
+            euler.y -= e.movementX * 0.005;
+            this.camera.quaternion.setFromEuler(euler);
+          }
+        });
+
+        document.addEventListener('click', () => {
+          if (!this.pointerLocked) {
+            document.documentElement.requestPointerLock();
+            this.pointerLocked = true;
+          }
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+          this.pointerLocked = document.pointerLockElement !== null;
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') document.exitPointerLock();
+          if (e.key === ' ') this.jump();
+        });
+
+        window.addEventListener('resize', () => {
+          this.camera.aspect = window.innerWidth / window.innerHeight;
+          this.camera.updateProjectionMatrix();
+          this.renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      }
+
+      movePlayer() {
+        if (this.gameState !== 'hiding' && this.gameState !== 'seeking') return;
+
+        const forward = new THREE.Vector3();
+        this.camera.getWorldDirection(forward);
+        forward.y = 0;
+        forward.normalize();
+
+        const right = new THREE.Vector3();
+        right.crossVectors(this.camera.up, forward).normalize();
+
+        if (this.keys['w']) this.camera.position.addScaledVector(forward, 0.3);
+        if (this.keys['s']) this.camera.position.addScaledVector(forward, -0.3);
+        if (this.keys['a']) this.camera.position.addScaledVector(right, -0.3);
+        if (this.keys['d']) this.camera.position.addScaledVector(right, 0.3);
+
+        if (this.gameMode === 'ai' && this.gameState === 'seeking' && !this.isSeeker) {
+          const seeker = Array.from(this.players.values()).find(p => p.isSeeker);
+          if (seeker) {
+            const dx = this.camera.position.x - seeker.position.x;
+            const dz = this.camera.position.z - seeker.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+
+            if (dist < 2) {
+              this.players.get('player1').isEliminated = true;
+              this.updatePlayerList();
+            }
+          }
+        }
+      }
+
+      jump() {
+        if (this.playerOnGround) {
+          this.playerVelocity.y = 0.15;
+          this.playerOnGround = false;
+        }
+      }
+
+      animate = () => {
+        requestAnimationFrame(this.animate);
+        this.movePlayer();
+
+        this.playerVelocity.y -= 0.01;
+        this.camera.position.y += this.playerVelocity.y;
+
+        if (this.camera.position.y <= 1) {
+          this.camera.position.y = 1;
+          this.playerVelocity.y = 0;
+          this.playerOnGround = true;
+        }
+
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    const game = new HideAndSeekGame();
+    game.init();
+  </script>
+</body>
+</html>
